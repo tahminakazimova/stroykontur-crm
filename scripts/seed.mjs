@@ -1,0 +1,17 @@
+// Run locally. Never run this in the frontend or commit environment credentials.
+import {createClient} from '@supabase/supabase-js';
+import {randomBytes} from 'node:crypto';
+const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY,anon=process.env.SUPABASE_ANON_KEY;
+if(!url||!key||!anon)throw Error('Set SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and SUPABASE_ANON_KEY in your local shell.');
+const admin=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
+const check=({data,error})=>{if(error)throw error;return data;};
+const accounts=[{name:'Александр Волков',role:'manager',email:'manager@stroycrm.example.com'},{name:'Дмитрий Соколов',role:'executor',email:'dmitry@stroycrm.example.com'},{name:'Анна Миронова',role:'executor',email:'anna@stroycrm.example.com'}];
+// Intended for a fresh database. Stops on duplicate email rather than changing existing users.
+for(const account of accounts){account.password=randomBytes(18).toString('base64url');const {user}=check(await admin.auth.admin.createUser({email:account.email,password:account.password,email_confirm:true}));account.id=user.id;check(await admin.from('profiles').insert({id:user.id,name:account.name,role:account.role}));account.client=createClient(url,anon,{auth:{persistSession:false,autoRefreshToken:false}});check(await account.client.auth.signInWithPassword({email:account.email,password:account.password}));}
+const [manager,dmitry,anna]=accounts;
+const objects=check(await manager.client.from('objects').insert([{name:'ЖК «Сосновый квартал»',address:'Москва, ул. Сосновая, 12'},{name:'Бизнес-центр «Горизонт»',address:'Москва, Ленинградский проспект, 36'},{name:'Загородный дом в Репино',address:'Московская обл., пос. Репино, участок 8'}]).select());
+const rows=[['Проверить армирование перекрытия',0,dmitry,'review'],['Монтаж перегородок на 3 этаже',0,anna,'working'],['Согласовать поставку бетона',0,dmitry,'new'],['Проверить гидроизоляцию фундамента',1,dmitry,'revision'],['Приёмка электромонтажных работ',1,anna,'accepted'],['Разметить оси фундамента',2,anna,'new']];
+for(const [title,index,executor,target] of rows){const task=check(await manager.client.from('tasks').insert({title,description:'Выполнить работы по проектной документации. Проверить качество и передать результат на проверку.',object_id:objects[index].id,assignee_id:executor.id,author_id:manager.id}).select().single());let status='new';const steps=target==='new'?[]:target==='working'?['working']:target==='review'?['working','review']:['working','review',target];for(const next of steps){const actor=next==='accepted'||next==='revision'?manager:executor;check(await actor.client.rpc('transition_task',{p_task_id:task.id,p_expected:status,p_status:next,p_comment:next==='revision'?'На стыках обнаружены пропуски. Нанесите дополнительный слой гидроизоляции.':null}));status=next;}}
+console.log('Seed complete. Store these test credentials outside the repository:');
+for(const a of accounts)console.log(`${a.role}\t${a.email}\t${a.password}`);
+for(const a of accounts)await a.client.auth.signOut();
