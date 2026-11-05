@@ -2,8 +2,8 @@
 
 Здравствуйте! Выполнил тестовое задание «Объекты и задачи».
 
-Приложение: [вставить ссылку на версию с подключённым Supabase].
-Репозиторий: [вставить GitHub URL].
+Приложение: https://stroykontur-crm-tahmina.pinkguppy.chatgpt.site.
+Репозиторий: https://github.com/tahminakazimova/stroykontur-crm.
 
 Тестовые доступы (пароли взять из результата scripts/seed.mjs):
 - Постановщик: manager@stroycrm.example.com — [пароль]
