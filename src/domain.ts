@@ -1,6 +1,6 @@
 export type Status = 'new'|'working'|'review'|'accepted'|'revision';
 export type Profile = {id:string;name:string;role:'manager'|'executor';email?:string};
-export type Site = {id:string;name:string;address:string;created_at:string};
+export type Site = {id:string;name:string;address:string;created_at:string;photo_paths?:string[]};
 export type Task = {id:string;title:string;description:string;object_id:string;assignee_id:string;author_id:string;status:Status;created_at:string};
 export type History = {id:string;task_id:string;actor_id:string;actor_name:string;from_status:Status|null;to_status:Status;comment:string|null;created_at:string};
 export const labels:Record<Status,string>={new:'Новая',working:'В работе',review:'На проверке',accepted:'Принята',revision:'На доработке'};
